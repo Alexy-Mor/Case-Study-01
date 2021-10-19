@@ -1,0 +1,79 @@
+```
+x <- data.frame(Beers)
+y <- data.frame(Breweries)
+names(x)[names(x) == "Brewery_id"] <- "Brew_ID"
+names(x)[names(x) == "Name"] <- "Beer_Name"
+
+Case <- merge(x, y, by="Brew_ID", all = TRUE)
+View(Case)
+```
+
+map <- Breweries %>% count(State)
+map
+
+map$State <- state.name[match(map$State,state.abb)]
+map 
+
+names(map)[names(map) == "State"] <- "state"
+
+library(usmap)
+library(ggplot2)
+
+plot_usmap(data = map, values = "n", color = "red") + 
+  scale_fill_continuous(name = "Brewery Number", label = scales::comma) + 
+  theme(legend.position = "right")
+
+
+```
+library(dplyr)
+alcohol = Case %>% select(Name, ABV, State) %>% filter(!is.na(ABV))
+bitterness = Case %>% select(Name, IBU, State) %>% filter(!is.na(IBU))
+
+MM_Alc <- alcohol %>% group_by(State) %>% summarise(Max=max(ABV), Min=min(ABV), Median=median(ABV))
+MM_Alc
+
+barplot(height=MM_Alc$Median, names=MM_Alc$State, col="#69b3a2"horiz=T, las=1)
+
+ggplot(MM_Alc, aes(x=State, y=Median) + geom_bar() 
+ggplot(alcohol, aes(x=State, y=ABV)) + geom_bar(stat = "identity", width=0.2) + coord_flip()
+  
+MM_bit <- bitterness %>% group_by(State) %>% summarise(Ma=max(IBU), Mi=min(IBU), Med=median(IBU))
+MM_bit
+
+barplot(height=MM_bit$Med, names=MM_bit$State, col="#69b3d2",horiz=T, las=1)
+
+ggplot(bitterness, aes(x=Name, y=IBU)) + geom_bar(stat = "identity", width=0.2) + coord_flip()
+ggplot(bitterness, aes(x=State, y=IBU)) + geom_bar(stat = "identity", width=0.2) + coord_flip()
+
+```
+M_ABV = Case %>% slice_max(ABV, n = 5)
+M_ABV
+
+M_IBU = Case %>% slice_max(IBU, n = 5)
+M_IBU
+
+```
+summary(Case$ABV)
+hist(Case$ABV, main="ABv Distribution", xlab="ABV", col="darkmagenta")
+
+```
+
+library(tidyverse)
+library(class)
+library(caret)
+
+Case$TIPA <- grepl("IPA", Case$Style, ignore.case = T)
+Case$TAle <- grepl("Ale", Case$Style, ignore.case = T)
+
+Base_IPA = Case %>% select(ABV, IBU, TIPA) %>% filter(!is.na(ABV)) %>% filter(!is.na(IBU))
+
+test = data.frame(ABV = .6, IBU = 50)
+ 
+knn(Base_IPA[,c(1,2)], test, Base_IPA$TIPA, k = 5, prob = TRUE)
+knn(Base_IPA[,c(1,2)], test, Base_IPA$TIPA, k = 15, prob = TRUE)
+
+Base_Ale = Case %>% select(ABV, IBU, TAle) %>% filter(!is.na(ABV)) %>% filter(!is.na(IBU))
+ 
+knn(Base_Ale[,c(1,2)], test, Base_Ale$TAle, k = 5, prob = TRUE)
+knn(Base_Ale[,c(1,2)], test, Base_Ale$TAle, k = 15, prob = TRUE)
+```
