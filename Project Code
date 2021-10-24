@@ -1,12 +1,5 @@
 ```
-x <- data.frame(Beers)
-y <- data.frame(Breweries)
-names(x)[names(x) == "Brewery_id"] <- "Brew_ID"
-names(x)[names(x) == "Name"] <- "Beer_Name"
-
-Case <- merge(x, y, by="Brew_ID", all = TRUE)
-View(Case)
-```
+#1-How many breweries are present in each state?
 
 map <- Breweries %>% count(State)
 map
@@ -23,40 +16,88 @@ plot_usmap(data = map, values = "n", color = "red") +
   scale_fill_continuous(name = "Brewery Number", label = scales::comma) + 
   theme(legend.position = "right")
 
+#In this section, we automated the counting process using the 51 states as catcategories and then counted the number of times said category appears in our data.
+
+#Through the 50 states we see that the highest number of breweries is in ___ with ____ and the lowest is in ___ with ____. That said most states are in the middle with between __ and __.
+```
+#2-Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file. 
+
+library(dplyr)
+
+x <- data.frame(Beers)
+y <- data.frame(Breweries)
+names(x)[names(x) == "Brewery_id"] <- "Brew_ID"
+names(x)[names(x) == "Name"] <- "Beer_Name"
+
+Case <- merge(x, y, by="Brew_ID", all = TRUE)
+View(Case)
+
+head(Case, n=6)
+
+tail(Case, n=6)
+
+#For convienience we combined the 2 dataframes given by matching up the brewery id numbers. We also took the time to rename a few columns for easy identification
+
 
 ```
-library(dplyr)
+
+#3-Address the missing values in each column
+
+colSums(is.na(Case))
+
+#While giving the data a cursurary glance our team noticed a number of missing values specifically in the IBU and ABV columns; unfortounely upon closer examination we see there are 1000+ missing values across our columns. The volume of missing vales means that it would be incredibly labour intensive on our teams part to fill the blanks manuelly. 
+
+```
+
+#4-Compute the median alcohol content and international bitterness unit for each state. Plot a bar chart to compare.
+
 alcohol = Case %>% select(Name, ABV, State) %>% filter(!is.na(ABV))
 bitterness = Case %>% select(Name, IBU, State) %>% filter(!is.na(IBU))
 
 MM_Alc <- alcohol %>% group_by(State) %>% summarise(Max=max(ABV), Min=min(ABV), Median=median(ABV))
-MM_Alc
 
-barplot(height=MM_Alc$Median, names=MM_Alc$State, col="#69b3a2"horiz=T, las=1)
+MM_Alc_tophalf <- head(MM_Alc, n=25)
+MM_Alc_bothalf <- tail(MM_Alc, n=26)
 
-ggplot(MM_Alc, aes(x=State, y=Median) + geom_bar() 
-ggplot(alcohol, aes(x=State, y=ABV)) + geom_bar(stat = "identity", width=0.2) + coord_flip()
+barplot(height=MM_Alc_tophalf$Median, names=MM_Alc_tophalf$State, col="#69b3a2", horiz=T, las=1)
+barplot(height=MM_Alc_bothalf$Median, names=MM_Alc_bothalf$State, col="#69b3a2", horiz=T, las=1)
   
 MM_bit <- bitterness %>% group_by(State) %>% summarise(Ma=max(IBU), Mi=min(IBU), Med=median(IBU))
-MM_bit
+
+MM_bit_tophalf <- head(MM_bit, n=25)
+MM_bit_bothalf <- tail(MM_bit, n=26)
 
 barplot(height=MM_bit$Med, names=MM_bit$State, col="#69b3d2",horiz=T, las=1)
 
-ggplot(bitterness, aes(x=Name, y=IBU)) + geom_bar(stat = "identity", width=0.2) + coord_flip()
-ggplot(bitterness, aes(x=State, y=IBU)) + geom_bar(stat = "identity", width=0.2) + coord_flip()
-
+barplot(height=MM_bit_tophalf$Med, names=MM_bit_tophalf$State, col="#69b3d2", horiz=T, las=1)
+barplot(height=MM_bit_bothalf$Med, names=MM_bit_bothalf$State, col="#69b3d2", horiz=T, las=1)
+  
+#To compute the median ABV and IBU level for each state we first broke down the larger given dataframe to only the needed variables in order to save on computation times. Then we got to the relevant calculations and lastly broke the medians into two dataframes  
 ```
+#5-Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
+
 M_ABV = Case %>% slice_max(ABV, n = 5)
 M_ABV
 
 M_IBU = Case %>% slice_max(IBU, n = 5)
 M_IBU
 
+#For the fifth question we simply reorginized the graphs from greatest ABV to least ABV and again from greatest to least IBU
 ```
+#6-Comment on the summary statistics and distribution of the ABV variable.
 summary(Case$ABV)
-hist(Case$ABV, main="ABv Distribution", xlab="ABV", col="darkmagenta")
+hist(Case$ABV, main="ABV Distribution", xlab="ABV", col="red")
 
 ```
+#7- Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Draw a scatter plot.
+
+ggplot(data = Case, mapping = aes(x = ABV, y = IBU))+ geom_point() + geom_smooth(method = lm) 
+
+lm(ABV ~ IBU, data=Case)
+
+#To address the relationship between ABV and IBU we have graphed IBU with respecet to ABV and created a linear model to highlight the direct relationship between the two
+```
+#8-Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs...
 
 library(tidyverse)
 library(class)
@@ -67,13 +108,10 @@ Case$TAle <- grepl("Ale", Case$Style, ignore.case = T)
 
 Base_IPA = Case %>% select(ABV, IBU, TIPA) %>% filter(!is.na(ABV)) %>% filter(!is.na(IBU))
 
-test = data.frame(ABV = .6, IBU = 50)
+test = data.frame(ABV = .05, IBU = 75)
  
 knn(Base_IPA[,c(1,2)], test, Base_IPA$TIPA, k = 5, prob = TRUE)
 knn(Base_IPA[,c(1,2)], test, Base_IPA$TIPA, k = 15, prob = TRUE)
 
-Base_Ale = Case %>% select(ABV, IBU, TAle) %>% filter(!is.na(ABV)) %>% filter(!is.na(IBU))
- 
-knn(Base_Ale[,c(1,2)], test, Base_Ale$TAle, k = 5, prob = TRUE)
-knn(Base_Ale[,c(1,2)], test, Base_Ale$TAle, k = 15, prob = TRUE)
+#For our KNN classification we have taken the essentially the same scatter plot from above and plotted different test points to examine the likely of a beer with our same ABV and IBU being a IPA or an Ale
 ```
