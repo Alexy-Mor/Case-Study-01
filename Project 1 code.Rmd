@@ -1,0 +1,151 @@
+---
+title: "Case Study 01"
+author: "Alexy Morris"
+date: "10/11/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+  With the Beer and Breweries data set provided by you, the CEO and CFO of Budweiser, our team was able to answer the questions you presented and have even addressed some additional questions that arose. As a disclaimer we are working on a relatively local scale so all information should only be generalized the the United States of America, our team would not recommend utilizing the same information abroad. Overall our team firmly believes that the following work will reflect the current and future trends in the craft beer market. 
+
+
+1-How many breweries are present in each state?
+```{r Breweries, echo=FALSE}
+library(dplyr)
+library(knitr)
+getwd()
+map <- Breweries %>% count(State)
+map
+
+map$State <- state.name[match(map$State,state.abb)]
+map 
+
+names(map)[names(map) == "State"] <- "state"
+
+library(usmap)
+library(ggplot2)
+
+plot_usmap(data = map, values = "n", color = "red") + 
+  scale_fill_continuous(name = "Brewery Number", label = scales::comma) + 
+  theme(legend.position = "right")
+```
+  In this section, we automated the counting process using the 51 states as categories and then counted the number of times said category appears in our data.
+
+  Through the 50 states we see that the highest number of breweries is in Colorado with 47 and one of the lowest is in South Dakota with 1. That said most states are in the middle with between about 10 to 30.
+
+
+2-Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file. 
+```{r Case2, echo=FALSE}
+library(dplyr)
+
+x <- data.frame(Beers)
+y <- data.frame(Breweries)
+names(x)[names(x) == "Brewery_id"] <- "Brew_ID"
+names(x)[names(x) == "Name"] <- "Beer_Name"
+
+Case <- merge(x, y, by="Brew_ID", all = TRUE)
+View(Case)
+
+head(Case, n=6)
+
+tail(Case, n=6)
+```
+  For convenience we combined the 2 dataframes given by matching up the brewery id numbers. We also took the time to rename a few columns for easy identification.
+
+
+3-Address the missing values in each column
+```{r Case3, echo=FALSE}
+colSums(is.na(Case))
+```
+  In this sections code we simply told our program to count/sum every missing value in each column.
+
+  While giving the data a cursory glance our team noticed a number of missing values specifically in the IBU and ABV columns; unfortunately upon closer examination we see there are 1000+ missing values across our columns. The volume of missing vales means that it would be incredibly labor intensive on our teams part to fill the blanks manually. 
+
+
+
+4-Compute the median alcohol content and international bitterness unit for each state. Plot a bar chart to compare.
+```{r Case4, echo=FALSE}
+alcohol = Case %>% select(Name, ABV, State) %>% filter(!is.na(ABV))
+bitterness = Case %>% select(Name, IBU, State) %>% filter(!is.na(IBU))
+
+MM_Alc <- alcohol %>% group_by(State) %>% summarise(Max=max(ABV), Min=min(ABV), Median=median(ABV))
+
+MM_Alc_tophalf <- head(MM_Alc, n=25)
+MM_Alc_bothalf <- tail(MM_Alc, n=26)
+
+barplot(height=MM_Alc_tophalf$Median, names=MM_Alc_tophalf$State, col="#69b3a2", horiz=T, las=1)
+barplot(height=MM_Alc_bothalf$Median, names=MM_Alc_bothalf$State, col="#69b3a2", horiz=T, las=1)
+  
+MM_bit <- bitterness %>% group_by(State) %>% summarise(Ma=max(IBU), Mi=min(IBU), Med=median(IBU))
+
+MM_bit_tophalf <- head(MM_bit, n=25)
+MM_bit_bothalf <- tail(MM_bit, n=26)
+
+barplot(height=MM_bit$Med, names=MM_bit$State, col="#69b3d2",horiz=T, las=1)
+
+barplot(height=MM_bit_tophalf$Med, names=MM_bit_tophalf$State, col="#69b3d2", horiz=T, las=1)
+barplot(height=MM_bit_bothalf$Med, names=MM_bit_bothalf$State, col="#69b3d2", horiz=T, las=1)
+```  
+  To compute the median ABV and IBU level for each state we first broke down the larger given dataframe to only the needed variables in order to save on computation times. Then we got to the relevant calculations and lastly broke the medians into two data frames.  
+
+  Our bar graphs revealed that, in regards to median, ABV is mostly consistent across state lines but on the other hand there was a lot of variety when it came to IBU.
+
+
+5-Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
+```{r Case5, echo=FALSE}
+M_ABV = Case %>% slice_max(ABV, n = 5)
+M_ABV
+
+M_IBU = Case %>% slice_max(IBU, n = 5)
+M_IBU
+```
+  For the fifth question we simply reorganized the graphs from greatest ABV to least ABV and again from greatest to least for IBU.
+
+  The state with the highest ABV is Colorado and the state with the highest IBU is Oregon.
+
+
+6-Comment on the summary statistics and distribution of the ABV variable.
+```{r C, echo=FALSE}
+summary(Case$ABV)
+hist(Case$ABV, main="ABV Distribution", xlab="ABV", col="red")
+```
+  By using the baseline functions of R we get a range of standard statistical values and even a histogram based off of our data. 
+
+  Both of graph and our summary statistics paint a picture of a normal distribution. Our mean and median are very close together and our 1st and 3rd quadrilles appear to be inline with the expectations of a normal distribution.
+
+
+7- Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Draw a scatter plot.
+```{r Ca, echo=FALSE}
+ggplot(data = Case, mapping = aes(x = ABV, y = IBU))+ geom_point() + geom_smooth(method = lm) 
+```
+  To address the relationship between ABV and IBU we have graphed IBU with respect to ABV and created a linear model to highlight the direct relationship between the two.
+
+  We notice that there does appear to be a direct positive relationship between ABV and IBU.
+
+
+8-Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with “Ale” in its name other than IPA).  You decide to use KNN classification to investigate this relationship.  Provide statistical evidence one way or the other. You can of course assume your audience is comfortable with percentages … KNN is very easy to understand conceptually.
+```{r Cas, echo=FALSE}
+library(tidyverse)
+library(class)
+library(caret)
+
+Case$TIPA <- grepl("IPA", Case$Style, ignore.case = T)
+Case$TAle <- grepl("Ale", Case$Style, ignore.case = T)
+
+Base_IPA = Case %>% select(ABV, IBU, TIPA) %>% filter(!is.na(ABV)) %>% filter(!is.na(IBU))
+
+test = data.frame(ABV = .05, IBU = 75)
+ 
+knn(Base_IPA[,c(1,2)], test, Base_IPA$TIPA, k = 5, prob = TRUE)
+knn(Base_IPA[,c(1,2)], test, Base_IPA$TIPA, k = 15, prob = TRUE)
+```
+  For our KNN classification we have taken the essentially the same scatter plot from above and plotted different test points to examine the likely of a beer with our same ABV and IBU being a IPA or an Ale.
+
+  Form a number of test we see that with our given test we were much more likely to get IPA as True in the case of a high IBU with the ABV seemingly not mattering. 
+
+  In conclusion, through our research into the beer/brewery data frames we have uncovered many answer to questions both requested by you, our client, and observed from notable trends. We hope these results provided the desired conclusions and in the event your company wants for a deeper analyzation we hope you will keep our team in mind. 
+
